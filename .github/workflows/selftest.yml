@@ -1,0 +1,40 @@
+name: Self Test
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # We use a sample crate to test the action, with a local remote
+
+      - name: Prepare crate
+        shell: bash
+        run: |
+          git config --global user.email ${GITHUB_ACTOR}@noreply
+          git config --global user.name $GITHUB_ACTOR
+          git clone --bare https://github.com/alire-project/libhello libhello.upstream
+          git clone libhello.upstream libhello
+          cd libhello
+
+          # Replace version with a random one to avoid conflicts
+
+          version=$RANDOM
+          sed -i "s/version = \".*\"/version = \"0.1.$version+selftest_by_alr_publish_action\"/" alire.toml
+          git commit -a -m "Set version to $version"
+          git push
+
+      - name: Self test
+        uses: ./
+        with:
+          directory: libhello
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          index_name: test-index
+          skip_submit: false
+          force: true  # because of the local remote

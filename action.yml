@@ -1,0 +1,132 @@
+name: 'alr publish'
+description: 'Publish using `alr publish`'
+author: 'Alire Project'
+
+inputs:
+  github_token:
+    description: 'GitHub token with permissions to fork and push'
+    required: true
+  directory:
+    description: 'Directory containing the crate to publish'
+    required: false
+    default: .
+  index_owner:
+    description: 'Owner of the index to publish to'
+    required: false
+    default: alire-project
+  index_name:
+    description: 'Name of the index repositoy'
+    required: false
+    default: alire-index
+  skip_build:
+    description: 'Skip building the project'
+    required: false
+    default: false
+  skip_submit:
+    description: 'Skip submitting the release to the index (only generate manifest)'
+    required: false
+    default: false
+  force:
+    description: use `alr --force`
+    required: false
+    default: false
+  clean:
+    description: Whether to remove alr afterwards, if it wasn't originally installed
+    required: false
+    default: true
+
+runs:
+  using: "composite"
+  steps:
+
+    - name: Find alr in path
+      id: find-alr
+      shell: bash
+      run: |
+        which alr && echo "available=true" >> $GITHUB_OUTPUT || echo "available=false" >> $GITHUB_OUTPUT
+
+    - name: Set up alr
+      if: steps.find-alr.outputs.available != 'true'
+      uses: alire-project/setup-alire@v4
+      with:
+        version: 2.1.0  # Necessary for the latest publish improvements
+
+    - name: Prepare arguments
+      shell: bash
+      run: |
+        if [[ "${{inputs.skip_build}}" != "false" ]]; then
+          echo "skip_build=--force" >> $GITHUB_ENV
+        else
+          echo "skip_build=" >> $GITHUB_ENV
+        fi
+        if [[ "${{inputs.skip_submit}}" != "false" ]]; then
+          echo "skip_submit=--skip-submit" >> $GITHUB_ENV
+        else
+          echo "skip_submit=" >> $GITHUB_ENV
+        fi
+        if [[ "${{inputs.force}}" != "false" ]]; then
+          echo "force=--force" >> $GITHUB_ENV
+        else
+          echo "force=" >> $GITHUB_ENV
+        fi
+
+    - name: Configure target index
+      shell: bash
+      run: |
+        alr settings --global --set index.owner ${{inputs.index_owner}}
+        alr settings --global --set index.repository_name ${{inputs.index_name}}
+
+    - name: Publish
+      shell: bash
+      env:
+        GH_USERNAME: ${{ github.actor }}
+        GH_TOKEN: ${{ inputs.github_token }}
+      run: |
+        echo "Entering directory ${{inputs.directory}}"
+        cd ${{inputs.directory}}
+
+        echo "Publishing with arguments: force=$force skip_build=$skip_build skip_submit=$skip_submit"
+        alr $force publish $skip_build $skip_submit | tee publish.log
+
+        # End already if we are skipping the submit
+        [[ "${{inputs.skip_submit}}" != "false" ]] && exit 0
+
+        # Identify PR number from output
+        # In python it would be: pr = re.search(r'/pull/(\d+) for details', p.out).group(1)
+
+        PR=$(grep -oP '/pull/\K\d+(?=  for details)' publish.log)
+        echo "PR created with number: $PR"
+
+        # Check periodically until the PR checks succeed or fail
+
+        waited  = 0
+        timeout = ${TIMEOUT:-300}
+        while true; do
+            sleep 10s
+            waited=$((waited+10))
+            line=$(alr publish --status | grep /$PR)
+            if [[ $line == *Checks_Passed* ]]; then
+                break
+            elif [[ $line == *Checks_Failed* ]]; then
+                echo "Checks failed unexpectedly for PR $PR: $line"
+                echo Please review manually
+                exit 1
+            elif [[ $waited -gt $timeout ]]; then
+                echo "Checks not completed after $timeout seconds for PR $PR"
+                echo Please review manually
+                exit 1
+            else
+                # Wait a bit and retry, but fail after so many time
+                sleep 1
+                waited=$((waited+1))
+            fi
+        done
+
+        # At this point the PR checks have passed and we can request a review
+
+        alr publish --request-review=$PR
+
+    - name: Cleanup
+      if: inputs.clean == 'true' && steps.find-alr.outputs.available != 'true'
+      shell: bash
+      run: rm -rf alire_install
