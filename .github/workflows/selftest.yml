@@ -30,11 +30,22 @@ jobs:
           git commit -a -m "Set version to $version"
           git push
 
+      # Check if the PAT exists before running the action
+      - name: Check if ALR_PUBLISH_PAT exists
+        shell: bash
+        run: |
+          if [ -z "${{ secrets.ALR_PUBLISH_PAT }}" ]; then
+            echo "::error::The ALR_PUBLISH_PAT secret is not set"
+            exit 1
+          else
+            echo "ALR_PUBLISH_PAT secret is set and ready to use."
+          fi
+
       - name: Self test
         uses: ./
         with:
           directory: libhello
-          github_token: ${{ secrets.GITHUB_TOKEN }}
+          github_token: ${{ secrets.ALR_PUBLISH_PAT }}
           index_name: test-index
           skip_submit: false
           force: true  # because of the local remote

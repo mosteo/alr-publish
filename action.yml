@@ -43,6 +43,7 @@ runs:
       id: find-alr
       shell: bash
       run: |
+        # FIND ALR STEP
         which alr && echo "available=true" >> $GITHUB_OUTPUT || echo "available=false" >> $GITHUB_OUTPUT
 
     - name: Set up alr
@@ -54,6 +55,7 @@ runs:
     - name: Prepare arguments
       shell: bash
       run: |
+        # ARGUMENTS PREPARATION STEP
         if [[ "${{inputs.skip_build}}" != "false" ]]; then
           echo "skip_build=--force" >> $GITHUB_ENV
         else
@@ -73,17 +75,22 @@ runs:
     - name: Configure target index
       shell: bash
       run: |
+        # INDEX CONFIGURATION STEP
         alr settings --global --set index.owner ${{inputs.index_owner}}
         alr settings --global --set index.repository_name ${{inputs.index_name}}
 
     - name: Publish
       shell: bash
       env:
-        GH_USERNAME: ${{ github.actor }}
-        GH_TOKEN: ${{ inputs.github_token }}
+        GH_TOKEN: ${{inputs.github_token}}
       run: |
+        # PUBLISHING STEP
         echo "Entering directory ${{inputs.directory}}"
         cd ${{inputs.directory}}
+
+        # Credentials
+        echo "Using user=${{github.actor}} with PAT=$GH_TOKEN"
+        alr settings --global --set user.github_login ${{github.actor}}
 
         echo "Publishing with arguments: force=$force skip_build=$skip_build skip_submit=$skip_submit"
         alr $force publish $skip_build $skip_submit | tee publish.log
@@ -100,10 +107,11 @@ runs:
         # Check periodically until the PR checks succeed or fail
 
         waited  = 0
+        backoff = 30
         timeout = ${TIMEOUT:-300}
         while true; do
-            sleep 10s
-            waited=$((waited+10))
+            sleep $backoff
+            waited=$((waited+backoff))
             line=$(alr publish --status | grep /$PR)
             if [[ $line == *Checks_Passed* ]]; then
                 break
@@ -129,4 +137,6 @@ runs:
     - name: Cleanup
       if: inputs.clean == 'true' && steps.find-alr.outputs.available != 'true'
       shell: bash
-      run: rm -rf alire_install
+      run: |
+        # CLEANUP STEP
+        rm -rf alire_install
