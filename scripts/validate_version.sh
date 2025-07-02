@@ -3,6 +3,9 @@
 # Verify that the crate version is not a pre-release version. We must extract
 # it from alire.toml, from `version = "x.y.z"` line.
 
+set -o errexit
+set -o nounset
+
 if [[ ! -f alire.toml ]]; then
     echo "Error: alire.toml not found in the current directory."
     exit 1

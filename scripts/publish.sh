@@ -9,7 +9,7 @@ git config --global user.name "$GITHUB_ACTOR"
 git config --global user.email "$GITHUB_ACTOR@alr-publish.action"
 
 echo "Publishing with arguments: force=$force skip_build=$skip_build skip_submit=$skip_submit"
-alr $force publish $skip_build $skip_submit | tee publish.log
+alr $force publish $skip_build $skip_submit
 
 # End already if we are skipping the submit
 [[ "$skip_submit" != "" ]] && exit 0
