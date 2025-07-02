@@ -26,6 +26,14 @@ inputs:
     description: 'Skip submitting the release to the index (only generate manifest)'
     required: false
     default: false
+  create_tag:
+    description: 'Create a version tag for the release'
+    required: false
+    default: true
+  tag_prefix:
+    description: 'Prefix for the tag, e.g., "v" for "v1.0.0"'
+    required: false
+    default: v
   force:
     description: use `alr --force`
     required: false
@@ -105,6 +113,15 @@ runs:
         # PUBLISHING STEP
         cd ${{inputs.directory}} && \
           $GITHUB_ACTION_PATH/scripts/publish.sh
+
+    - name: Tag
+      if: inputs.create_tag == 'true'
+      shell: bash
+      run: |
+        # TAGGING STEP
+        git tag -a "${{inputs.tag_prefix}}$(alr version)" \
+                -m "Release ${{inputs.tag_prefix}}$(alr version)" && \
+        git push --tags
 
     - name: Cleanup
       if: inputs.clean == 'true' && steps.find-alr.outputs.available != 'true'
