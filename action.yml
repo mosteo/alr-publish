@@ -101,7 +101,7 @@ runs:
         # Identify PR number from output
         # In python it would be: pr = re.search(r'/pull/(\d+) for details', p.out).group(1)
 
-        PR=$(grep -oP '/pull/\K\d+(?=  for details)' publish.log)
+        PR=$(grep -oP '/pull/\K\d+(?= for details)' publish.log) || echo "PR number not found in output!"
         echo "PR created with number: $PR"
 
         # Check periodically until the PR checks succeed or fail
