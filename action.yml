@@ -100,6 +100,7 @@ runs:
 
     - name: Validate version
       shell: bash
+      id: version
       run: |
         # VERSION VALIDATION STEP
         cd ${{inputs.directory}} && \
@@ -119,8 +120,8 @@ runs:
       shell: bash
       run: |
         # TAGGING STEP
-        git tag -a "${{inputs.tag_prefix}}$(alr version)" \
-                -m "Release ${{inputs.tag_prefix}}$(alr version)" && \
+        git tag -a "${{inputs.tag_prefix}}${{steps.version.outputs.version}}" \
+                -m "Release ${{inputs.tag_prefix}}${{steps.version.outputs.version}}" && \
         git push --tags
 
     - name: Cleanup
