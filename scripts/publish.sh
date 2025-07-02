@@ -32,13 +32,20 @@ echo "PR created with number: $PR"
 # Check periodically until the PR checks succeed or fail
 
 waited=0
-backoff=30
+backoff1=10
+backoff2=10
 timeout=${TIMEOUT:-600}
 
 while true; do
-    echo "Waiting for checks to complete for PR $PR (waited $waited seconds)"
-    sleep $backoff
-    waited=$((waited+backoff))
+    echo "Waiting $backoff2 seconds for checks to complete for PR $PR (waited $waited seconds)"
+    sleep $backoff2
+    waited=$((waited+backoff2))
+
+    # Fibonacci update for backoff
+    used=$backoff1
+    backoff1=$backoff2
+    backoff2=$((used+backoff2))
+
     line=$(alr publish --status | grep /$PR)
     if [[ $line == *Checks_Passed* ]]; then
         break

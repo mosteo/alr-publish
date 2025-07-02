@@ -122,7 +122,7 @@ runs:
         GH_TOKEN: ${{inputs.github_token}}
       run: |
         # TAGGING STEP
-        cd ${{inputs.directory}}
+        cd ${{inputs.directory}} # unneeded?
         tag_name="${{inputs.tag_prefix}}${{steps.version.outputs.version}}"
         gh api repos/:owner/:repo/git/tags \
           --method POST \
