@@ -33,7 +33,16 @@ inputs:
   tag_prefix:
     description: 'Prefix for the tag, e.g., "v" for "v1.0.0"'
     required: false
-    default: v
+    default: 'v'
+  create_release:
+    # Will use the same prefix in tag_prefix
+    description: 'Create a GitHub release for the tag (implies create_tag)'
+    required: false
+    default: true
+  release_prefix:
+    description: 'Prefix for the release title, e.g., "Release v" for "Release v1.0.0"'
+    required: false
+    default: 'v'
   force:
     description: use `alr --force`
     required: false
@@ -116,13 +125,13 @@ runs:
           $GITHUB_ACTION_PATH/scripts/publish.sh
 
     - name: Tag
-      if: inputs.create_tag == 'true'
+      if: inputs.create_tag == 'true' || inputs.create_release == 'true'
       shell: bash
       env:
         GH_TOKEN: ${{inputs.github_token}}
       run: |
         # TAGGING STEP
-        cd ${{inputs.directory}}
+        cd ${{inputs.directory}} # unneeded?
         tag_name="${{inputs.tag_prefix}}${{steps.version.outputs.version}}"
         gh api repos/:owner/:repo/git/tags \
           --method POST \
@@ -134,6 +143,19 @@ runs:
           --method POST \
           --field ref="refs/tags/$tag_name" \
           --field sha="${{github.sha}}"
+
+    - name: Create GitHub release
+      if: inputs.create_release == 'true'
+      shell: bash
+      env:
+        GH_TOKEN: ${{inputs.github_token}}
+      run: |
+        # RELEASING STEP
+        tag_name="${{inputs.tag_prefix}}${{steps.version.outputs.version}}"
+        gh release create "$tag_name" \
+          --title "${{inputs.release_prefix}}${{steps.version.outputs.version}}" \
+          --repo "${{github.repository}}" \
+          --generate-notes
 
     - name: Cleanup
       if: inputs.clean == 'true' && steps.find-alr.outputs.available != 'true'

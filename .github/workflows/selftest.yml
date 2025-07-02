@@ -49,4 +49,5 @@ jobs:
           index_name: test-index
           skip_submit: false
           create_tag: false # we aren't running on a crate repo, so no tag
+          create_release: false # no release either
           force: true  # because of the local remote
