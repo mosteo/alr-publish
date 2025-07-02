@@ -33,12 +33,16 @@ inputs:
   tag_prefix:
     description: 'Prefix for the tag, e.g., "v" for "v1.0.0"'
     required: false
-    default: v
+    default: 'v'
   create_release:
     # Will use the same prefix in tag_prefix
     description: 'Create a GitHub release for the tag (implies create_tag)'
     required: false
     default: true
+  release_prefix:
+    description: 'Prefix for the release title, e.g., "Release v" for "Release v1.0.0"'
+    required: false
+    default: 'v'
   force:
     description: use `alr --force`
     required: false
@@ -149,9 +153,7 @@ runs:
         # RELEASING STEP
         tag_name="${{inputs.tag_prefix}}${{steps.version.outputs.version}}"
         gh release create "$tag_name" \
-          --title "Release $tag_name" \
-          --notes "Release notes for $tag_name" \
-          --target "${{github.sha}}" \
+          --title "${{inputs.release_prefix}}${{steps.version.outputs.version}}" \
           --repo "${{github.repository}}" \
           --generate-notes
 

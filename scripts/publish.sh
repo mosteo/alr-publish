@@ -48,13 +48,14 @@ while true; do
 
     line=$(alr publish --status | grep /$PR)
     if [[ $line == *Checks_Passed* ]]; then
+        echo "CHECKS PASSED for PR $PR: $line"
         break
     elif [[ $line == *Checks_Failed* ]]; then
-        echo "Checks failed unexpectedly for PR $PR: $line"
+        echo "CHECKS FAILED for PR $PR: $line"
         echo Please review manually
         exit 1
     elif [[ $waited -gt $timeout ]]; then
-        echo "Checks not completed after $timeout seconds for PR $PR"
+        echo "Checks not yet completed after $timeout seconds for PR $PR"
         echo Please review manually
         exit 1
     else
