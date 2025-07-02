@@ -119,12 +119,21 @@ runs:
       if: inputs.create_tag == 'true'
       shell: bash
       env:
-        GITHUB_TOKEN: ${{inputs.github_token}}
+        GH_TOKEN: ${{inputs.github_token}}
       run: |
         # TAGGING STEP
-        git tag -a "${{inputs.tag_prefix}}${{steps.version.outputs.version}}" \
-                -m "Release ${{inputs.tag_prefix}}${{steps.version.outputs.version}}" && \
-        git push --tags
+        cd ${{inputs.directory}}
+        tag_name="${{inputs.tag_prefix}}${{steps.version.outputs.version}}"
+        gh api repos/:owner/:repo/git/tags \
+          --method POST \
+          --field tag="$tag_name" \
+          --field message="Release $tag_name" \
+          --field object="${{github.sha}}" \
+          --field type="commit"
+        gh api repos/:owner/:repo/git/refs \
+          --method POST \
+          --field ref="refs/tags/$tag_name" \
+          --field sha="${{github.sha}}"
 
     - name: Cleanup
       if: inputs.clean == 'true' && steps.find-alr.outputs.available != 'true'
