@@ -9,7 +9,7 @@ git config --global user.name "$GITHUB_ACTOR"
 git config --global user.email "$GITHUB_ACTOR@alr-publish.action"
 
 echo "Publishing with arguments: force=$force skip_build=$skip_build skip_submit=$skip_submit"
-alr $force publish $skip_build $skip_submit
+alr $force publish $skip_build $skip_submit | tee publish.log
 
 # End already if we are skipping the submit
 [[ "$skip_submit" != "" ]] && exit 0
@@ -19,8 +19,6 @@ alr $force publish $skip_build $skip_submit
 
 PR=$(grep -oP '/pull/\K\d+(?= for details)' publish.log) || {
     echo "::error::PR number not found in output!"
-    echo "Publish log contents:"
-    cat publish.log
     exit 1
 }
 
