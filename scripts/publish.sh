@@ -3,18 +3,14 @@
 set -o errexit
 set -o nounset
 
-echo "Entering directory ${{inputs.directory}}"
-cd ${{inputs.directory}}
-
 # Credentials
-echo "Using user=${{github.actor}} with configured PAT"
-alr settings --global --set user.github_login ${{github.actor}}
+alr settings --global --set user.github_login $GITHUB_ACTOR
 
 echo "Publishing with arguments: force=$force skip_build=$skip_build skip_submit=$skip_submit"
 alr $force publish $skip_build $skip_submit | tee publish.log
 
 # End already if we are skipping the submit
-[[ "${{inputs.skip_submit}}" != "false" ]] && exit 0
+[[ "$skip_submit" != "" ]] && exit 0
 
 # Identify PR number from output
 # In python it would be: pr = re.search(r'/pull/(\d+) for details', p.out).group(1)
