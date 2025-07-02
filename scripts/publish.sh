@@ -5,6 +5,8 @@ set -o nounset
 
 # Credentials
 alr settings --global --set user.github_login $GITHUB_ACTOR
+git config --global user.name "$GITHUB_ACTOR"
+git config --global user.email "$USER_EMAIL"
 
 echo "Publishing with arguments: force=$force skip_build=$skip_build skip_submit=$skip_submit"
 alr $force publish $skip_build $skip_submit | tee publish.log

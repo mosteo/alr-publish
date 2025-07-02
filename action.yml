@@ -6,6 +6,10 @@ inputs:
   github_token:
     description: 'GitHub token with permissions to fork and push'
     required: true
+  user_email:
+    description: 'Email address to use for commits'
+    required: true
+    default: ''
   directory:
     description: 'Directory containing the crate to publish'
     required: false
@@ -101,6 +105,7 @@ runs:
       shell: bash
       env:
         GH_TOKEN: ${{inputs.github_token}}
+        USER_EMAIL: ${{inputs.user_email}}
       run: |
         # PUBLISHING STEP
         cd ${{inputs.directory}} && \
