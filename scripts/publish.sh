@@ -38,6 +38,7 @@ backoff=30
 timeout=${TIMEOUT:-600}
 
 while true; do
+    echo "Waiting for checks to complete for PR $PR (waited $waited seconds)"
     sleep $backoff
     waited=$((waited+backoff))
     line=$(alr publish --status | grep /$PR)
