@@ -78,15 +78,24 @@ runs:
         # INDEX CONFIGURATION STEP
         alr settings --global --set index.owner ${{inputs.index_owner}}
         alr settings --global --set index.repository_name ${{inputs.index_name}}
+        echo "Configured index: https://github.com/${{inputs.index_owner}}/${{inputs.index_name}}"
 
     - name: Validate inputs
       shell: bash
       run: |
         # INPUT VALIDATION STEP
+        echo "Running with user=${{github.actor}}"
         if [[ -z "${{inputs.github_token}}" ]]; then
           echo "::error::github_token input is required but not provided"
           exit 1
         fi
+
+    - name: Validate version
+      shell: bash
+      run: |
+        # VERSION VALIDATION STEP
+        cd ${{inputs.directory}} && \
+          $GITHUB_ACTION_PATH/scripts/validate_version.sh
 
     - name: Publish
       shell: bash
@@ -94,66 +103,8 @@ runs:
         GH_TOKEN: ${{inputs.github_token}}
       run: |
         # PUBLISHING STEP
-        echo "Entering directory ${{inputs.directory}}"
-        cd ${{inputs.directory}}
-
-        # Credentials
-        echo "Using user=${{github.actor}} with configured PAT"
-        alr settings --global --set user.github_login ${{github.actor}}
-
-        echo "Publishing with arguments: force=$force skip_build=$skip_build skip_submit=$skip_submit"
-        alr $force publish $skip_build $skip_submit | tee publish.log
-
-        # End already if we are skipping the submit
-        [[ "${{inputs.skip_submit}}" != "false" ]] && exit 0
-
-        # Identify PR number from output
-        # In python it would be: pr = re.search(r'/pull/(\d+) for details', p.out).group(1)
-
-        PR=$(grep -oP '/pull/\K\d+(?= for details)' publish.log) || {
-          echo "::error::PR number not found in output!"
-          echo "Publish log contents:"
-          cat publish.log
-          exit 1
-        }
-
-        if [[ -z "$PR" ]]; then
-          echo "::error::PR variable is empty"
-          exit 1
-        fi
-
-        echo "PR created with number: $PR"
-
-        # Check periodically until the PR checks succeed or fail
-
-        waited=0
-        backoff=30
-        timeout=${TIMEOUT:-600}
-
-        while true; do
-            sleep $backoff
-            waited=$((waited+backoff))
-            line=$(alr publish --status | grep /$PR)
-            if [[ $line == *Checks_Passed* ]]; then
-                break
-            elif [[ $line == *Checks_Failed* ]]; then
-                echo "Checks failed unexpectedly for PR $PR: $line"
-                echo Please review manually
-                exit 1
-            elif [[ $waited -gt $timeout ]]; then
-                echo "Checks not completed after $timeout seconds for PR $PR"
-                echo Please review manually
-                exit 1
-            else
-                # Wait a bit and retry, but fail after so many time
-                sleep 1
-                waited=$((waited+1))
-            fi
-        done
-
-        # At this point the PR checks have passed and we can request a review
-
-        alr publish --request-review=$PR
+        cd ${{inputs.directory}} && \
+          $GITHUB_ACTION_PATH/scripts/publish.sh
 
     - name: Cleanup
       if: inputs.clean == 'true' && steps.find-alr.outputs.available != 'true'
