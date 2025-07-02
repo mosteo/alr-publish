@@ -118,6 +118,8 @@ runs:
     - name: Tag
       if: inputs.create_tag == 'true'
       shell: bash
+      env:
+        GITHUB_TOKEN: ${{inputs.github_token}}
       run: |
         # TAGGING STEP
         git tag -a "${{inputs.tag_prefix}}${{steps.version.outputs.version}}" \
