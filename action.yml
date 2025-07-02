@@ -106,9 +106,10 @@ runs:
 
         # Check periodically until the PR checks succeed or fail
 
-        waited  = 0
-        backoff = 30
-        timeout = ${TIMEOUT:-300}
+        waited=0
+        backoff=30
+        timeout=${TIMEOUT:-600}
+
         while true; do
             sleep $backoff
             waited=$((waited+backoff))
