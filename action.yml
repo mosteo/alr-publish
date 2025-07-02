@@ -83,6 +83,7 @@ runs:
       shell: bash
       run: |
         # INPUT VALIDATION STEP
+        echo "Running with user=${{github.actor}}"
         if [[ -z "${{inputs.github_token}}" ]]; then
           echo "::error::github_token input is required but not provided"
           exit 1
