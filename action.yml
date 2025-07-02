@@ -15,7 +15,7 @@ inputs:
     required: false
     default: alire-project
   index_name:
-    description: 'Name of the index repositoy'
+    description: 'Name of the index repository'
     required: false
     default: alire-index
   skip_build:
@@ -57,7 +57,7 @@ runs:
       run: |
         # ARGUMENTS PREPARATION STEP
         if [[ "${{inputs.skip_build}}" != "false" ]]; then
-          echo "skip_build=--force" >> $GITHUB_ENV
+          echo "skip_build=--skip-build" >> $GITHUB_ENV
         else
           echo "skip_build=" >> $GITHUB_ENV
         fi
@@ -79,6 +79,15 @@ runs:
         alr settings --global --set index.owner ${{inputs.index_owner}}
         alr settings --global --set index.repository_name ${{inputs.index_name}}
 
+    - name: Validate inputs
+      shell: bash
+      run: |
+        # INPUT VALIDATION STEP
+        if [[ -z "${{inputs.github_token}}" ]]; then
+          echo "::error::github_token input is required but not provided"
+          exit 1
+        fi
+
     - name: Publish
       shell: bash
       env:
@@ -89,7 +98,7 @@ runs:
         cd ${{inputs.directory}}
 
         # Credentials
-        echo "Using user=${{github.actor}} with PAT=$GH_TOKEN"
+        echo "Using user=${{github.actor}} with configured PAT"
         alr settings --global --set user.github_login ${{github.actor}}
 
         echo "Publishing with arguments: force=$force skip_build=$skip_build skip_submit=$skip_submit"
@@ -101,7 +110,18 @@ runs:
         # Identify PR number from output
         # In python it would be: pr = re.search(r'/pull/(\d+) for details', p.out).group(1)
 
-        PR=$(grep -oP '/pull/\K\d+(?= for details)' publish.log) || echo "PR number not found in output!"
+        PR=$(grep -oP '/pull/\K\d+(?= for details)' publish.log) || {
+          echo "::error::PR number not found in output!"
+          echo "Publish log contents:"
+          cat publish.log
+          exit 1
+        }
+
+        if [[ -z "$PR" ]]; then
+          echo "::error::PR variable is empty"
+          exit 1
+        fi
+
         echo "PR created with number: $PR"
 
         # Check periodically until the PR checks succeed or fail
