@@ -26,6 +26,14 @@ inputs:
     description: 'Skip submitting the release to the index (only generate manifest)'
     required: false
     default: false
+  create_tag:
+    description: 'Create a version tag for the release'
+    required: false
+    default: true
+  tag_prefix:
+    description: 'Prefix for the tag, e.g., "v" for "v1.0.0"'
+    required: false
+    default: v
   force:
     description: use `alr --force`
     required: false
@@ -92,6 +100,7 @@ runs:
 
     - name: Validate version
       shell: bash
+      id: version
       run: |
         # VERSION VALIDATION STEP
         cd ${{inputs.directory}} && \
@@ -105,6 +114,26 @@ runs:
         # PUBLISHING STEP
         cd ${{inputs.directory}} && \
           $GITHUB_ACTION_PATH/scripts/publish.sh
+
+    - name: Tag
+      if: inputs.create_tag == 'true'
+      shell: bash
+      env:
+        GH_TOKEN: ${{inputs.github_token}}
+      run: |
+        # TAGGING STEP
+        cd ${{inputs.directory}}
+        tag_name="${{inputs.tag_prefix}}${{steps.version.outputs.version}}"
+        gh api repos/:owner/:repo/git/tags \
+          --method POST \
+          --field tag="$tag_name" \
+          --field message="Release $tag_name" \
+          --field object="${{github.sha}}" \
+          --field type="commit"
+        gh api repos/:owner/:repo/git/refs \
+          --method POST \
+          --field ref="refs/tags/$tag_name" \
+          --field sha="${{github.sha}}"
 
     - name: Cleanup
       if: inputs.clean == 'true' && steps.find-alr.outputs.available != 'true'

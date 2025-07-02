@@ -48,4 +48,5 @@ jobs:
           github_token: ${{ secrets.ALR_PUBLISH_PAT }}
           index_name: test-index
           skip_submit: false
+          create_tag: false # we aren't running on a crate repo, so no tag
           force: true  # because of the local remote

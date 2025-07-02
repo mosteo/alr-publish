@@ -23,3 +23,6 @@ if [[ "$version" == *"-"* ]]; then
 fi
 
 echo "Version $version is valid and not a pre-release."
+
+# Output the version for further use
+echo "version=$version" >> "$GITHUB_OUTPUT"
