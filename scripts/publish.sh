@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+set -o errexit
+set -o nounset
+
 echo "Entering directory ${{inputs.directory}}"
 cd ${{inputs.directory}}
 
