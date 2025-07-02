@@ -88,6 +88,13 @@ runs:
           exit 1
         fi
 
+    - name: Validate version
+      shell: bash
+      run: |
+        # VERSION VALIDATION STEP
+        cd ${{inputs.directory}} && \
+          $GITHUB_ACTION_PATH/scripts/validate_version.sh
+
     - name: Publish
       shell: bash
       env:
